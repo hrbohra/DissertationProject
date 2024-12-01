@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>Word Cloud</h2>
+
+    <!-- Include jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Include Word Cloud JS library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.0.6/wordcloud2.min.js"></script>
+
+    <!-- Set explicit width and height for the canvas -->
+    <div id="wordCloud" style="height: 600px; width: 100%;"></div>
+
+    <script>
+        // Using 'anonymized_description' or 'description' from the CSV data
+        var words = {{ data | tojson }};
+        
+        // Ensure that the word list has valid sizes
+        var wordList = words.map(function(item) {
+            var size = Math.max(10, Math.random() * 90); // Ensure minimum size is 10
+            return [item.anonymized_description, size]; // Using anonymized description
+        });
+
+        WordCloud(document.getElementById('wordCloud'), { 
+            list: wordList,
+            gridSize: Math.floor(16 * $('#wordCloud').width() / 1024),  // Adjust grid size
+            weightFactor: 2,  // Adjust weight factor
+            color: 'random-dark',
+            backgroundColor: '#fff',  // Set background color
+            rotateRatio: 0.5,  // Control rotation ratio
+            shape: 'circle',  // Circle shape
+        });
+    </script>
+{% endblock %}

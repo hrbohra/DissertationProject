@@ -1,0 +1,37 @@
+<div class="card mb-3 shadow-sm">
+    <div class="row g-0">
+        <!-- Avatar Section -->
+        <div class="col-auto p-3">
+            <a href="{{ url_for('main.user', username=post.author.username) }}">
+                <img src="{{ post.author.avatar(70) }}" alt="Avatar of {{ post.author.username }}" class="rounded-circle">
+            </a>
+        </div>
+
+        <!-- Post Content Section -->
+        <div class="col p-3">
+            <div class="card-body">
+                <!-- Username and Timestamp -->
+                <h5 class="card-title mb-1">
+                    <a class="user_popup text-dark" href="{{ url_for('main.user', username=post.author.username) }}">
+                        {{ post.author.username }}
+                    </a>
+                </h5>
+                <p class="text-muted small">
+                    {{ moment(post.timestamp).fromNow() }}
+                </p>
+
+                <!-- Post Body -->
+                <p class="card-text" id="post{{ post.id }}">
+                    {{ post.body }}
+                </p>
+
+                <!-- Translation Link (if applicable) -->
+                {% if post.language and post.language != g.locale %}
+                <p class="text-muted small" id="translation{{ post.id }}">
+                    <a href="javascript:translate('post{{ post.id }}', 'translation{{ post.id }}', '{{ post.language }}', '{{ g.locale }}');" class="text-primary">{{ _('Translate') }}</a>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

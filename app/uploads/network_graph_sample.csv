@@ -1,0 +1,6 @@
+location1,location2,emotion_score
+New York,Boston,0.75
+Chicago,Miami,0.6
+Los Angeles,San Francisco,0.85
+Houston,Dallas,0.55
+Phoenix,Denver,0.7

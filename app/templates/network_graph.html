@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>Network Graph</h2>
+
+    <!-- Include D3.js -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <div style="display: flex;">
+        <!-- Network graph container -->
+        <div id="networkGraph" style="height: 600px; width: 900px;"></div>
+
+        <!-- Legend container -->
+        <div id="legend" style="padding-left: 20px;">
+            <h3>Legend</h3>
+            <div style="display: flex; align-items: center;">
+                <div style="width: 20px; height: 20px; background-color: red; margin-right: 5px;"></div>
+                <span>Negative Emotion</span>
+            </div>
+            <div style="display: flex; align-items: center;">
+                <div style="width: 20px; height: 20px; background-color: white; margin-right: 5px; border: 1px solid #000;"></div>
+                <span>Neutral Emotion</span>
+            </div>
+            <div style="display: flex; align-items: center;">
+                <div style="width: 20px; height: 20px; background-color: green; margin-right: 5px;"></div>
+                <span>Positive Emotion</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var networkData = {{ data | tojson }};
+        console.log(networkData);  // Log the data to inspect
+
+        // D3.js Network Graph Setup
+        var width = 900, height = 600;  // Set graph width and height
+        var svg = d3.select("#networkGraph").append("svg")
+                    .attr("width", width)
+                    .attr("height", height)
+                    .call(d3.zoom()  // Adding zoom functionality
+                        .scaleExtent([0.5, 5])  // Define the zoom range
+                        .on("zoom", zoomed))  // Function to handle zoom events
+                    .append("g");  // Append 'g' for zoomable content
+
+        // Function to handle zoom and pan
+        function zoomed(event) {
+            svg.attr("transform", event.transform);
+        }
+
+        // Extract the links (edges) from the data
+        var links = networkData.map(d => ({ source: d.location1, target: d.location2, score: d.emotion_score }));
+
+        // Create nodes by combining unique location1 and location2 values
+        var nodes = Array.from(new Set(links.flatMap(link => [link.source, link.target])))
+                         .map(location => {
+                             let nodeData = networkData.find(d => d.location1 === location || d.location2 === location);
+                             return {
+                                 id: location,
+                                 emotion_intensity: nodeData ? nodeData.emotion_intensity : 0,
+                                 emotion_score: nodeData ? nodeData.emotion_score : 0
+                             };
+                         });
+
+        // Create a force simulation for the layout
+        var simulation = d3.forceSimulation(nodes)
+            .force("link", d3.forceLink(links).id(d => d.id).distance(160))
+            .force("charge", d3.forceManyBody().strength(-600)) // Repulsion to space out nodes
+            .force("center", d3.forceCenter(width / 2, height / 2)) // Center nodes
+            .force("x", d3.forceX(width / 2).strength(0.08))  // Horizontal constraint
+            .force("y", d3.forceY(height / 2).strength(0.08)); // Vertical constraint
+
+        // Create links (lines) between nodes
+        var link = svg.append("g")
+            .selectAll("line")
+            .data(links)
+            .enter()
+            .append("line")
+            .attr("stroke", "#999")
+            .attr("stroke-width", 1.5);
+
+        // Create a color scale for the emotion score
+        var colorScale = d3.scaleLinear()
+                           .domain([-1, 0, 1])
+                           .range(["red", "white", "green"]);
+
+        // Create nodes (circles) with size and color based on emotion data
+        var node = svg.append("g")
+            .selectAll("circle")
+            .data(nodes)
+            .enter()
+            .append("circle")
+            .attr("r", d => 10 + (d.emotion_intensity * 20))
+            .attr("fill", d => colorScale(d.emotion_score))
+            .call(drag(simulation));
+
+        // Add text labels for each node (location names)
+        var label = svg.append("g")
+            .selectAll("text")
+            .data(nodes)
+            .enter()
+            .append("text")
+            .attr("dy", -10)
+            .attr("text-anchor", "middle")
+            .text(d => d.id)  // Use 'id' for labeling (location name)
+            .attr("fill", "black");
+
+        // Update positions after each tick of the simulation
+        simulation.on("tick", () => {
+            link
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+
+            node
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y);
+
+            label
+                .attr("x", d => d.x)
+                .attr("y", d => d.y);
+        });
+
+        // Add dragging functionality
+        function drag(simulation) {
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+
+            return d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended);
+        }
+    </script>
+{% endblock %}

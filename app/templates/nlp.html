@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<!-- Hero Section with Greeting -->
+<section class="hero py-5 text-center" style="background: linear-gradient(135deg, #f7f9fc 0%, #eef2fb 100%);">
+    <div class="container">
+        <h1 class="display-4 font-weight-light text-primary animated fadeInDown">{{ _('Hi, %(username)s!', username=current_user.username) }}</h1>
+        <p class="lead text-muted animated fadeInUp">{{ _('Explore the Interactive Map Visualizations below.') }}</p>
+    </div>
+</section>
+
+<!-- NLP Visualization Section -->
+<section class="nlp-visualization-section py-5">
+    <div class="container">
+        <!-- Page Title -->
+        <!-- <h2 class="text-center text-primary mb-5 font-weight-light">{{ _('Natural Language Processing and Visualizations') }}</h2> -->
+
+        <!-- NLP File Upload Section -->
+        <div class="card mb-5 shadow-sm border-0" style="border-radius: 10px;">
+            <div class="card-header bg-primary text-white" style="border-radius: 10px 10px 0 0;">
+                <h4 class="mb-0 font-weight-normal">{{ _('NLP to create processed CSV for Visualizations') }}</h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" enctype="multipart/form-data" class="mb-3">
+                    <div class="form-group">
+                        <label for="nlp_files">{{ _('Upload CSV File from Map') }}:</label>
+                        <input type="file" name="files[]" multiple accept=".csv" class="form-control-file">
+                    </div>
+                    <button type="submit" name="action" value="nlp" class="btn btn-primary btn-block mt-3" style="border-radius: 5px;">
+                        {{ _('Upload NLP Files') }}
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Heat Map File Upload Section -->
+        <div class="card mb-5 shadow-sm border-0" style="border-radius: 10px;">
+            <div class="card-header bg-warning text-white" style="border-radius: 10px 10px 0 0;">
+                <h4 class="mb-0 font-weight-normal">{{ _('Upload Processed CSV for Heat Map') }}</h4>
+            </div>
+            <div class="card-body p-4">
+                <form action="{{ url_for('main.heat_map') }}" method="post" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="heatmap_file">{{ _('Upload Processed CSV') }}:</label>
+                        <input type="file" name="processed_file" accept=".csv" class="form-control-file">
+                    </div>
+                    <button type="submit" class="btn btn-warning btn-block mt-3" style="border-radius: 5px;">
+                        {{ _('Generate Heat Map') }}
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Emotion-Based Visualizations Section -->
+        <div class="card mb-5 shadow-sm border-0" style="border-radius: 10px;">
+            <div class="card-header bg-info text-white" style="border-radius: 10px 10px 0 0;">
+                <h4 class="mb-0 font-weight-normal">{{ _('Emotion-Based Visualizations') }}</h4>
+            </div>
+            <div class="card-body p-4">
+                <div class="row">
+                    <div class="col-md-4">
+                        <form action="{{ url_for('main.choropleth_map') }}" method="post" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <label for="choropleth_file">{{ _('Choropleth Map') }}:</label>
+                                <input type="file" name="file" accept=".csv" class="form-control-file">
+                            </div>
+                            <button type="submit" class="btn btn-info btn-block mt-3" style="border-radius: 5px;">
+                                {{ _('Generate Choropleth Map') }}
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="col-md-4">
+                        <form action="{{ url_for('main.time_series') }}" method="post" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <label for="time_series_file">{{ _('Time-Series Chart') }}:</label>
+                                <input type="file" name="file" accept=".csv" class="form-control-file">
+                            </div>
+                            <button type="submit" class="btn btn-success btn-block mt-3" style="border-radius: 5px;">
+                                {{ _('Generate Time-Series Chart') }}
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="col-md-4">
+                        <form action="{{ url_for('main.bubble_chart') }}" method="post" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <label for="bubble_chart_file">{{ _('Bubble Chart') }}:</label>
+                                <input type="file" name="file" accept=".csv" class="form-control-file">
+                            </div>
+                            <button type="submit" class="btn btn-secondary btn-block mt-3" style="border-radius: 5px;">
+                                {{ _('Generate Bubble Chart') }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Text-Based Visualizations Section -->
+        <div class="card mb-5 shadow-sm border-0" style="border-radius: 10px;">
+            <div class="card-header bg-dark text-white" style="border-radius: 10px 10px 0 0;">
+                <h4 class="mb-0 font-weight-normal">{{ _('Text-Based Visualizations') }}</h4>
+            </div>
+            <div class="card-body p-4">
+                <div class="row">
+                    <div class="col-md-6">
+                        <form action="{{ url_for('main.word_cloud') }}" method="post" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <label for="word_cloud_file">{{ _('Word Cloud') }}:</label>
+                                <input type="file" name="file" accept=".csv" class="form-control-file">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block mt-3" style="border-radius: 5px;">
+                                {{ _('Generate Word Cloud') }}
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="col-md-6">
+                        <form action="{{ url_for('main.network_graph') }}" method="post" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <label for="network_graph_file">{{ _('Network Graph') }}:</label>
+                                <input type="file" name="file" accept=".csv" class="form-control-file">
+                            </div>
+                            <button type="submit" class="btn btn-dark btn-block mt-3" style="border-radius: 5px;">
+                                {{ _('Generate Network Graph') }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visualization Container for Future JS Visualization -->
+        <div id="visualization_container" class="mt-5">
+            {% if data %}
+                <script>
+                    // Insert your JS code for rendering visualizations here
+                </script>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

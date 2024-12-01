@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>Bubble Chart</h2>
+
+    <!-- Include D3.js -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <div id="bubbleChart" style="height: 600px;"></div>
+
+    <script>
+        var bubbleData = {{ data | tojson }};
+        
+        // Set dimensions and margins for the SVG
+        var width = 1200;  // Increase width for better spacing
+        var height = 600;
+
+        var svg = d3.select("#bubbleChart").append("svg")
+                    .attr("width", width)
+                    .attr("height", height);
+
+        // Create a projection for the world map
+        var projection = d3.geoNaturalEarth1()
+                           .scale(160)
+                           .translate([width / 2, height / 2]);
+
+        // Create a path generator for the world map
+        var path = d3.geoPath().projection(projection);
+
+        // Load and display the world map in the background
+        d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson").then(function(world) {
+            svg.append("g")
+               .selectAll("path")
+               .data(world.features)
+               .enter()
+               .append("path")
+               .attr("d", path)
+               .style("fill", "#f0f0f0")
+               .style("stroke", "#888");
+            
+            // After loading the map, display the bubbles
+            plotBubbles();
+        });
+
+        // Define scales for positioning and bubble size
+        var sizeScale = d3.scaleLinear()
+                          .domain([d3.min(bubbleData, d => d.emotion_intensity), d3.max(bubbleData, d => d.emotion_intensity)])
+                          .range([5, 40]);  // Bubble size range
+
+        var colorScale = d3.scaleSequential()
+                           .domain([d3.max(bubbleData, d => d.emotion_intensity), d3.min(bubbleData, d => d.emotion_intensity)])  // Reverse domain
+                           .interpolator(d3.interpolateBlues);  // Sequential color scale (blue -> high, orange -> low)
+
+        // Tooltip for displaying bubble info with positive/negative information
+        var tooltip = d3.select("body").append("div")
+                        .attr("class", "tooltip")
+                        .style("opacity", 0)
+                        .style("position", "absolute")
+                        .style("background-color", "white")
+                        .style("border", "solid 1px #ccc")
+                        .style("padding", "10px")
+                        .style("border-radius", "5px");
+
+        // Function to plot the bubbles
+        function plotBubbles() {
+            svg.selectAll("circle")
+               .data(bubbleData)
+               .enter()
+               .append("circle")
+               .attr("cx", function(d) {
+                   return projection([d.longitude, d.latitude])[0];  // Use projection to calculate x
+               })
+               .attr("cy", function(d) {
+                   return projection([d.longitude, d.latitude])[1];  // Use projection to calculate y
+               })
+               .attr("r", function(d) {
+                   return sizeScale(d.emotion_intensity);  // Scale the size of the bubbles
+               })
+               .style("fill", function(d) {
+                   return colorScale(d.emotion_intensity);  // Color based on emotion intensity
+               })
+               .style("opacity", 0.8)  // Adjust bubble opacity for better clarity
+               .on("mouseover", function(event, d) {
+                   var positivity = (d.positive_score > d.negative_score) ? 'Positive' : 'Negative';
+                   tooltip.transition().duration(200).style("opacity", 1);
+                   tooltip.html(
+                       "Longitude: " + d.longitude + "<br>" +
+                       "Latitude: " + d.latitude + "<br>" +
+                       "Emotion Intensity: " + d.emotion_intensity + "<br>" +
+                       "Overall: " + positivity
+                   )
+                   .style("left", (event.pageX + 10) + "px")
+                   .style("top", (event.pageY - 10) + "px");
+               })
+               .on("mouseout", function() {
+                   tooltip.transition().duration(200).style("opacity", 0);
+               });
+        }
+
+        // Add axis labels
+        svg.append("text")
+           .attr("x", width / 2)
+           .attr("y", height - 10)
+           .attr("text-anchor", "middle")
+           .style("font-size", "14px")
+           .text("Longitude");
+
+        svg.append("text")
+           .attr("text-anchor", "middle")
+           .attr("transform", "translate(20," + (height / 2) + ")rotate(-90)")
+           .style("font-size", "14px")
+           .text("Latitude");
+
+        // Legend for bubble size (Emotion Intensity)
+        var legend = svg.append("g")
+                        .attr("transform", "translate(" + (width - 200) + "," + (height / 4) + ")");
+        
+        var legendSizes = [d3.min(bubbleData, d => d.emotion_intensity), (d3.min(bubbleData, d => d.emotion_intensity) + d3.max(bubbleData, d => d.emotion_intensity)) / 2, d3.max(bubbleData, d => d.emotion_intensity)];
+        
+        legend.selectAll("circle")
+              .data(legendSizes)
+              .enter()
+              .append("circle")
+              .attr("cy", function(d, i) { return i * 30; })
+              .attr("r", function(d) { return sizeScale(d); })
+              .style("fill", "none")
+              .style("stroke", "black");
+
+        legend.selectAll("text")
+              .data(legendSizes)
+              .enter()
+              .append("text")
+              .attr("y", function(d, i) { return i * 30 + 5; })
+              .attr("x", 40)
+              .style("font-size", "12px")
+              .text(function(d) { return d.toFixed(2); });
+
+        // Add a color legend explaining positive/negative intensities
+        var colorLegend = svg.append("g")
+                             .attr("transform", "translate(" + (width - 150) + "," + (height / 3) + ")");
+        
+        var legendData = [{text: "Negative (Lower)", color: "orange"}, {text: "Positive (Higher)", color: "blue"}];
+
+        colorLegend.selectAll("rect")
+                   .data(legendData)
+                   .enter()
+                   .append("rect")
+                   .attr("y", function(d, i) { return i * 20; })
+                   .attr("width", 18)
+                   .attr("height", 18)
+                   .style("fill", function(d) { return d.color; });
+
+        colorLegend.selectAll("text")
+                   .data(legendData)
+                   .enter()
+                   .append("text")
+                   .attr("x", 25)
+                   .attr("y", function(d, i) { return i * 20 + 12; })
+                   .style("font-size", "12px")
+                   .text(function(d) { return d.text; });
+    </script>
+
+    <style>
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            width: 120px;
+            height: auto;
+            padding: 8px;
+            font-size: 12px;
+            background: lightsteelblue;
+            border: 0px;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+    </style>
+{% endblock %}

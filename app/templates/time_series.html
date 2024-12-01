@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>Time-Series Chart</h2>
+    
+    <!-- Include Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Include Moment.js for date handling -->
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1"></script>
+    <!-- Include Chart.js Moment.js adapter -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
+
+    <canvas id="timeSeriesChart" style="height: 400px; width: 100%;"></canvas>
+
+    <script>
+        var ctx = document.getElementById('timeSeriesChart').getContext('2d');
+        var timeSeriesData = {{ data | tojson }};
+        
+        // Extract labels (timestamps) and emotion scores from the data
+        var labels = timeSeriesData.map(function(entry) { return entry.timestamp });
+        var emotionScores = timeSeriesData.map(function(entry) { return entry.emotion_score });
+
+        var chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,  // timestamps
+                datasets: [{
+                    label: 'Emotion Score Over Time',
+                    data: emotionScores,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    fill: false
+                }]
+            },
+            options: {
+                scales: {
+                    x: {
+                        type: 'time',  // Specify the time scale for the x-axis
+                        time: {
+                            unit: 'day',  // You can adjust this depending on your dataset
+                            tooltipFormat: 'YYYY-MM-DD',  // Format for displaying dates
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+{% endblock %}

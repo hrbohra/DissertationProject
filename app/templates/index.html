@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% import "bootstrap_wtf.html" as wtf %}
+
+{% block content %}
+    <!-- Hero Section with Greeting -->
+    <section class="hero py-5 text-center" style="background: linear-gradient(135deg, #f0f4ff 0%, #e0eafc 100%);">
+        <div class="container">
+            <h1 class="display-4 font-weight-bold text-primary animated fadeInDown">{{ _('Hi, %(username)s!', username=current_user.username) }}</h1>
+            <p class="lead text-muted animated fadeInUp">{{ _('Welcome back! Explore the latest posts below.') }}</p>
+        </div>
+    </section>
+
+    <!-- Form Section with Centering and Wider Layout -->
+    {% if form %}
+    <form method="POST" action="{{ url_for('main.index') }}">
+        {{ form.hidden_tag() }}  <!-- CSRF token to prevent form submission issues -->
+        <section class="form-section container py-4" style="max-width: 1000px; margin-bottom: 40px;">
+            <div class="card shadow-sm p-4 border-0 animated fadeIn" style="border-radius: 10px;">
+                <div class="card-body">
+                    <h2 class="card-title text-center text-secondary mb-4">{{ _('Submit Your Post') }}</h2>
+                    <!-- Using Bootstrap grid to make the form wider and center elements -->
+                    <div class="row justify-content-center">
+                        <div class="col-md-10 mx-auto">
+                            <!-- Text input field centered relative to the submit button -->
+                            <div class="mb-3 text-center">
+                                {{ form.post(placeholder="Say something", class_="form-control form-control-lg w-75 mx-auto") }}
+                            </div>
+                            <div class="text-center">
+                                {{ form.submit(class_="btn btn-primary btn-lg w-25") }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </form>
+    {% endif %}
+
+    <!-- Post Listing with Card-Based Layout and Reduced Width -->
+    <section class="post-list container py-3" style="max-width: 1000px;">
+        <div class="row">
+            {% for post in posts %}
+            <div class="col-md-6 mb-4">
+                <div class="card post-card shadow-sm border-0 animated fadeInUp" style="border-radius: 10px;">
+                    {% include '_post.html' %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Pagination with Modern Style and Hover Effects -->
+    <nav aria-label="Post navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item{% if not prev_url %} disabled{% endif %}">
+                <a class="page-link btn-outline-primary rounded-pill shadow-sm" href="{{ prev_url or '#' }}" tabindex="-1" aria-disabled="true">
+                    <span aria-hidden="true">&larr;</span> {{ _('Newer posts') }}
+                </a>
+            </li>
+            <li class="page-item{% if not next_url %} disabled{% endif %}">
+                <a class="page-link btn-outline-primary rounded-pill shadow-sm" href="{{ next_url or '#' }}">
+                    {{ _('Older posts') }} <span aria-hidden="true">&rarr;</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Back to Top Button -->
+    <a href="#" class="btn btn-primary btn-lg back-to-top shadow-lg" style="position: fixed; bottom: 40px; right: 40px; display: none;">
+        &uarr; {{ _('Top') }}
+    </a>
+
+    <!-- Scroll to Top Script -->
+    <script>
+        document.addEventListener('scroll', function() {
+            var button = document.querySelector('.back-to-top');
+            if (window.scrollY > 400) {
+                button.style.display = 'block';
+            } else {
+                button.style.display = 'none';
+            }
+        });
+    </script>
+{% endblock %}

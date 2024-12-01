@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <!-- User Profile Section with Centered Layout -->
+    <section class="profile-section container py-5" style="max-width: 800px;">
+        <div class="card shadow-lg p-4 border-0 animated fadeInUp" style="border-radius: 15px;">
+            <div class="text-center">
+                <!-- Centering the Avatar -->
+                <img src="{{ user.avatar(256) }}" class="img-fluid rounded-circle shadow-sm mb-3" alt="User Avatar" width="150">
+                
+                <!-- User Details -->
+                <h1 class="card-title text-primary mb-3">{{ user.username }}</h1>
+
+                <!-- Last Seen Info -->
+                {% if user.last_seen %}
+                <p class="card-text" style="font-size: 1.1rem;"><small class="text-muted">{{ _('Last seen on') }}: {{ moment(user.last_seen).format('LLL') }}</small></p>
+                {% endif %}
+
+                <!-- Followers and Following Info (Aligned with the buttons) -->
+                <div class="d-flex justify-content-between align-items-center mb-3" style="max-width: 350px; margin: auto;">
+                    <p class="card-text text-info" style="font-size: 1.2rem;">
+                        <a href="#" class="text-decoration-none text-info">{{ _('%(count)d followers', count=user.followers_count()) }}</a>
+                    
+                        <a href="#" class="text-decoration-none text-info">{{ _('%(count)d following', count=user.following_count()) }}</a>
+                    </p>
+                </div>
+
+                <!-- User Actions: Edit Profile, Follow/Unfollow, Send Message -->
+                <div class="d-flex justify-content-center align-items-center mb-3 gap-2">
+                    {% if user == current_user %}
+                    <a href="{{ url_for('main.edit_profile') }}" class="btn btn-outline-primary me-2">{{ _('Edit your profile') }}</a>
+                    
+                    {% elif not current_user.is_following(user) %}
+                    <form action="{{ url_for('main.follow', username=user.username) }}" method="post" class="d-inline">
+                        {{ form.hidden_tag() }}
+                        {{ form.submit(value=_('Follow'), class_='btn btn-primary me-2') }}
+                    </form>
+                    {% else %}
+                    <form action="{{ url_for('main.unfollow', username=user.username) }}" method="post" class="d-inline">
+                        {{ form.hidden_tag() }}
+                        {{ form.submit(value=_('Unfollow'), class_='btn btn-danger me-2') }}
+                    </form>
+                    {% endif %}
+
+                    {% if user != current_user %}
+                    <a href="{{ url_for('main.send_message', recipient=user.username) }}" class="btn btn-outline-success">{{ _('Send private message') }}</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Divider Line for Separation -->
+    <hr class="my-5" style="max-width: 800px; margin: auto;">
+
+    <!-- Posts Section -->
+    <section class="post-list container py-5" style="max-width: 800px;">
+        <h2 class="text-center mb-4">{{ _('Posts by') }} {{ user.username }}</h2>
+        <div class="row">
+            {% for post in posts %}
+            <div class="col-md-6 mb-4">
+                <div class="card post-card shadow-sm border-0 animated fadeInUp" style="border-radius: 10px;">
+                    {% include '_post.html' %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Pagination -->
+    <nav aria-label="Post navigation" class="mt-5">
+        <ul class="pagination justify-content-center">
+            <li class="page-item{% if not prev_url %} disabled{% endif %}">
+                <a class="page-link btn-outline-primary rounded-pill shadow-sm" href="{{ prev_url or '#' }}" tabindex="-1" aria-disabled="true">
+                    <span aria-hidden="true">&larr;</span> {{ _('Newer posts') }}
+                </a>
+            </li>
+            <li class="page-item{% if not next_url %} disabled{% endif %}">
+                <a class="page-link btn-outline-primary rounded-pill shadow-sm" href="{{ next_url or '#' }}">
+                    {{ _('Older posts') }} <span aria-hidden="true">&rarr;</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+{% endblock %}

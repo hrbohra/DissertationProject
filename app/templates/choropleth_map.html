@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>Choropleth Map</h2>
+    
+    <!-- Include Leaflet.js CSS and JavaScript -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+    <!-- Map Container -->
+    <div id="map" style="height: 600px;"></div>
+
+    <script>
+        // Initialize Leaflet map
+        var map = L.map('map').setView([0, 0], 2); // Centered at 0,0 with world zoom
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Choropleth data (from CSV)
+        var geoData = {{ data | tojson }};
+
+        // Function to style the regions based on emotion score
+        function getColor(score) {
+            return score > 0.8 ? '#800026' :
+                   score > 0.6 ? '#BD0026' :
+                   score > 0.4 ? '#E31A1C' :
+                   score > 0.2 ? '#FC4E2A' :
+                   '#FFEDA0';
+        }
+
+        // Add choropleth regions
+        geoData.forEach(function(item) {
+            L.circle([item.latitude, item.longitude], {
+                color: getColor(item.emotion_score),
+                fillOpacity: 0.7,
+                radius: 50000
+            }).addTo(map);
+        });
+    </script>
+{% endblock %}

@@ -1,0 +1,500 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+
+    <!-- Interactive Map Section -->
+         <!-- Hero Section with Greeting from index.html -->
+    <section class="hero py-5 text-center" style="background: linear-gradient(135deg, #f0f4ff 0%, #e0eafc 100%);">
+        <div class="container">
+            <h1 class="display-4 font-weight-bold text-primary animated fadeInDown">{{ _('Hi, %(username)s!', username=current_user.username) }}</h1>
+            <p class="lead text-muted animated fadeInUp">{{ _('Explore the interactive map. Instruction below it.') }}</p>
+        </div>
+    </section>
+    <section class="map-section container py-5" style="max-width: 100%;">
+        <!-- Search Container -->
+    <div id="search-container" class="mt-3">
+        <input type="text" id="search-input" class="form-control form-control-lg" placeholder="Search for location or marker">
+        <div id="autocomplete-results" class="list-group shadow-sm mt-2" style="display: none; max-height: 200px; overflow-y: auto;"></div>
+    </div>
+        
+        <div id="map" class="shadow-sm" style="height: 600px; width: 100%; border-radius: 15px; border: 2px solid #dee2e6;"></div>
+    <!-- Download Entries Button -->
+    <div class="d-flex justify-content-center mt-4">
+        <button id="download-entries-btn" class="btn btn-primary" onclick="window.location.href='/download_entries'">
+            Download All Entries
+        </button>
+    </div>
+        
+        <!-- Instructions Section -->
+        <div id="map-instructions" class="mt-4">
+            <h3>How to Use the Interactive Map</h3>
+            <p>
+                This interactive map allows you to explore and interact with markers placed at various locations. 
+                Here's how to use it:
+            </p>
+            <ul>
+                <li>Click anywhere on the map to add a new marker.</li>
+                <li>When adding a marker, you can provide a title, description, and optionally upload an image.</li>
+                <li>Select an emoji that represents the marker's mood or theme.</li>
+                <li>Use the search bar to find markers by title, description, or location. Suggestions will appear as you type.</li>
+                <li>You can add comments to existing markers or delete them if needed.</li>
+                <li>All markers and their data are saved automatically.</li>
+                <li>Click on Download All Entries to download a CSV file of all data on Map</li>
+            </ul>
+            <p class="text-muted">{{ _('Tip: Click on an existing marker to see details or add comments.') }}</p>
+        </div>
+        
+        <!-- Add Marker Form -->
+        <div id="add-marker-form" class="shadow-lg p-4 border rounded" style="display: none; background-color: white; width: 400px; z-index: 1000;">
+            <h3 id="form-title" class="text-center">Add New Marker</h3>
+            <input type="text" id="marker-title" class="form-control mb-3" placeholder="Title">
+            <textarea id="marker-description" class="form-control mb-3" placeholder="Description"></textarea>
+            <div id="emoji-selector" class="d-flex justify-content-between flex-wrap mb-3">
+                <span class="emoji-option" data-emoji="😊">😊</span>
+                <span class="emoji-option" data-emoji="😃">😃</span>
+                <span class="emoji-option" data-emoji="😢">😢</span>
+                <span class="emoji-option" data-emoji="😠">😠</span>
+                <span class="emoji-option" data-emoji="😐">😐</span>
+                <span class="emoji-option" data-emoji="❤️">❤️</span>
+                <span class="emoji-option" data-emoji="👍">👍</span>
+                <span class="emoji-option" data-emoji="🎉">🎉</span>
+            </div>
+            <input type="file" id="marker-image" class="form-control mb-3" accept="image/*">
+            <div class="d-flex justify-content-between">
+                <button id="submit-marker" class="btn btn-primary w-50 me-2">Add Marker</button>
+                <button id="close-form" class="btn btn-secondary w-50">Close</button>
+            </div>
+        </div>
+    </section>
+
+    
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css">
+
+<style>
+    /* Add CSS styles for better visual appearance */
+    #map {
+        border: 1px solid #ccc;
+        border-radius: 15px;
+    }
+
+    #search-container {
+        margin-bottom: 10px;
+    }
+
+    #search-input {
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Make sure the search container has a relative position */
+    #search-container {
+        position: relative;
+        margin-bottom: 10px;
+    }
+
+    /* Ensure the autocomplete box is positioned relative to the search container */
+    #autocomplete-results {
+        position: absolute;
+        top: 100%; /* Places it just below the search bar */
+        left: 0;
+        right: 0; /* Ensure it stretches across the width of the container */
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        z-index: 1001; /* Ensure it is above other content like the map */
+        display: none; /* Hidden by default */
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .autocomplete-item {
+        padding: 10px; /* Increase padding for easier clicking */
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+    }
+
+    .autocomplete-item:hover {
+        background-color: #f0f0f0;
+    }
+
+
+
+    #add-marker-form {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 15px;
+        background-color: #f9f9f9;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        /* Center the form */
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 300px;
+        z-index: 1000; /* Ensure form is above the map */
+    }
+    
+
+
+
+    #emoji-selector {
+        display: flex;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+    }
+
+    .emoji-option {
+        margin: 5px;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 50%;
+        font-size: 20px;
+        cursor: pointer;
+        display: inline-block;
+    }
+
+    .emoji-option.selected {
+        background-color: #007bff;
+        color: #fff;
+        border-color: #007bff;
+    }
+
+    #marker-image {
+        margin-bottom: 10px;
+    }
+
+    #submit-marker,
+    #close-form {
+        padding: 8px 15px;
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-right: 5px;
+    }
+
+    .emoji-marker {
+        font-size: 24px;
+        text-align: center;
+        line-height: 1;
+        background-color: #fff;
+        border-radius: 50%;
+        box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+        pointer-events: none;
+    }
+</style>
+
+<script>
+
+
+
+    // Parse the map data passed from the backend
+    const savedMapData = JSON.parse('{{ map_data|safe }}') || {};
+
+    // Initialize the map
+    if (typeof map !== 'undefined') {
+        map.remove();
+    }
+    var map = L.map('map').setView([0, 0], 2);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    // Custom emoji marker
+    L.EmojiMarker = L.Marker.extend({
+        options: {
+            icon: L.divIcon({
+                html: '😊',
+                className: 'emoji-marker',
+                iconSize: [36, 36]
+            })
+        },
+        initialize: function (latlng, options) {
+            options = options || {};
+            options.icon = L.divIcon({
+                html: options.emoji || '😊',
+                className: 'emoji-marker',
+                iconSize: [36, 36]
+            });
+            L.Marker.prototype.initialize.call(this, latlng, options);
+        }
+    });
+
+    // Array to store all markers
+    var markers = [];
+
+    // Load saved markers from the map_data
+    if (savedMapData.markers) {
+        savedMapData.markers.forEach(markerData => {
+            var marker = new L.EmojiMarker([markerData.lat, markerData.lng], {
+                emoji: markerData.emoji,
+                title: markerData.title,
+                description: markerData.description,
+                image: markerData.image, // Ensure image is passed here
+                comments: markerData.comments || []
+            }).addTo(map);
+            
+            markers.push(marker);
+            updateMarkerPopup(marker);
+        });
+    }
+
+    // Search functionality
+    var searchInput = document.getElementById('search-input');
+    var autocompleteResults = document.getElementById('autocomplete-results');
+
+    searchInput.addEventListener('input', function() {
+        var searchTerm = this.value.toLowerCase();
+        if (searchTerm.length > 2) {
+            // Search markers
+            var markerResults = markers.filter(marker => {
+                var title = marker.options.title.toLowerCase();
+                var description = marker.options.description.toLowerCase();
+                var emoji = marker.options.emoji;
+                return title.includes(searchTerm) || description.includes(searchTerm) || getEmojiName(emoji).toLowerCase().includes(searchTerm);
+            });
+
+            // Search locations
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${searchTerm}`)
+                .then(response => response.json())
+                .then(data => {
+                    autocompleteResults.innerHTML = '';
+
+                    // Add marker results
+                    markerResults.forEach(marker => {
+                        var div = document.createElement('div');
+                        div.textContent = `${marker.options.emoji} ${marker.options.title}`;
+                        div.classList.add('autocomplete-item');
+                        div.addEventListener('click', function() {
+                            map.setView(marker.getLatLng(), 13);
+                            marker.openPopup();
+                            autocompleteResults.style.display = 'none';
+                            searchInput.value = marker.options.title;
+                        });
+                        autocompleteResults.appendChild(div);
+                    });
+
+                    // Add location results
+                    data.forEach(result => {
+                        var div = document.createElement('div');
+                        div.textContent = result.display_name;
+                        div.classList.add('autocomplete-item');
+                        div.addEventListener('click', function() {
+                            map.setView([result.lat, result.lon], 13);
+                            autocompleteResults.style.display = 'none';
+                            searchInput.value = result.display_name;
+                        });
+                        autocompleteResults.appendChild(div);
+                    });
+
+                    autocompleteResults.style.display = 'block';
+                });
+        } else {
+            autocompleteResults.style.display = 'none';
+        }
+    });
+
+    // Add marker form
+    var addMarkerForm = document.getElementById('add-marker-form');
+    var markerTitle = document.getElementById('marker-title');
+    var markerDescription = document.getElementById('marker-description');
+    var markerImage = document.getElementById('marker-image');
+    var submitMarker = document.getElementById('submit-marker');
+    var closeForm = document.getElementById('close-form');
+    var clickedLatLng;
+
+    // Emoji selector
+    var emojiSelector = document.getElementById('emoji-selector');
+    var selectedEmoji = '😊';
+
+    emojiSelector.addEventListener('click', function(e) {
+        if (e.target.classList.contains('emoji-option')) {
+            selectedEmoji = e.target.dataset.emoji;
+            document.querySelectorAll('.emoji-option').forEach(emoji => {
+                emoji.classList.remove('selected');
+            });
+            e.target.classList.add('selected');
+        }
+    });
+
+    map.on('click', function(e) {
+        clickedLatLng = e.latlng;
+        addMarkerForm.style.display = 'block';
+        document.querySelector('.emoji-option[data-emoji="😊"]').classList.add('selected');
+    });
+
+    submitMarker.addEventListener('click', function() {
+        var title = markerTitle.value;
+        var description = markerDescription.value;
+        var imageFile = markerImage.files[0];
+        var timestamp = new Date().toISOString(); // Add current timestamp
+        
+        if (title && description) {
+            // Upload the image if it exists
+            if (imageFile) {
+                var formData = new FormData();
+                formData.append('image', imageFile);
+        
+                fetch('/upload_marker_image', {
+                    method: 'POST',
+                    body: formData
+                }).then(response => response.json())
+                .then(data => {
+                    if (data.imageUrl) {
+                        var marker = new L.EmojiMarker(clickedLatLng, {
+                            emoji: selectedEmoji,
+                            title: title,
+                            description: description,
+                            image: data.imageUrl,  // Store the image URL
+                            comments: [],
+                            timestamp: timestamp  // Add timestamp
+                        }).addTo(map);
+                        markers.push(marker);
+                        updateMarkerPopup(marker);
+                        closeAndResetForm();
+                        saveMapData();  // Save map state with the image URL and timestamp
+                    }
+                }).catch(error => {
+                    console.error('Error uploading image:', error);
+                });
+            } else {
+                // If no image, just add the marker
+                var marker = new L.EmojiMarker(clickedLatLng, {
+                    emoji: selectedEmoji,
+                    title: title,
+                    description: description,
+                    comments: [],
+                    timestamp: timestamp  // Add timestamp
+                }).addTo(map);
+                markers.push(marker);
+                updateMarkerPopup(marker);
+                closeAndResetForm();
+                saveMapData();
+            }
+        }
+    });
+
+    closeForm.addEventListener('click', closeAndResetForm);
+
+    function closeAndResetForm() {
+        addMarkerForm.style.display = 'none';
+        markerTitle.value = '';
+        markerDescription.value = '';
+        markerImage.value = '';
+        selectedEmoji = '😊';
+        document.querySelectorAll('.emoji-option').forEach(emoji => {
+            emoji.classList.remove('selected');
+        });
+    }
+
+    function getEmojiName(emoji) {
+        const emojiNames = {
+            '😊': 'smiling face',
+            '😃': 'grinning face',
+            '😢': 'crying face',
+            '😠': 'angry face',
+            '😐': 'neutral face',
+            '❤️': 'heart',
+            '👍': 'thumbs up',
+            '🎉': 'party popper'
+        };
+        return emojiNames[emoji] || '';
+    }
+
+    function updateMarkerPopup(marker) {
+        var popupContent = `
+            <b>${marker.options.title}</b><br>
+            ${marker.options.description}<br>
+            ${marker.options.image ? `<img src="${marker.options.image}" width="100"><br>` : ''}
+            ${marker.options.emoji}<br>
+            <div id="comments">
+                ${marker.options.comments.map(comment => `<div class="comment">${comment}</div>`).join('')}
+            </div>
+            <input type="text" id="comment-input" placeholder="Add a comment">
+            <button id="add-comment">Add Comment</button>
+            <button class="delete-marker-btn">Delete</button>
+        `;
+        
+        marker.bindPopup(popupContent);
+    
+        marker.on('popupopen', function() {
+            document.getElementById('add-comment').addEventListener('click', function() {
+                var commentInput = document.getElementById('comment-input');
+                if (commentInput.value.trim() !== '') {
+                    marker.options.comments.push(commentInput.value);
+                    updateMarkerPopup(marker);
+                    marker.openPopup();
+                    saveMapData();  // Save after adding comment
+                }
+            });
+
+            document.querySelector('.delete-marker-btn').addEventListener('click', function() {
+                map.removeLayer(marker);
+                markers = markers.filter(m => m !== marker); // Remove from the markers array
+                saveMapData(); // Save map state after deletion
+            });
+        });
+    }
+
+    function updateMarkerSizes() {
+        var zoom = map.getZoom();
+        var baseSize = Math.max(24, Math.min(48, zoom * 3));
+
+        markers.forEach(function(marker) {
+            var nearby = 0;
+            markers.forEach(function(otherMarker) {
+                if (marker !== otherMarker && map.distance(marker.getLatLng(), otherMarker.getLatLng()) < 100) {
+                    nearby++;
+                }
+            });
+
+            var size = Math.max(24, baseSize - (nearby * 2));
+
+            marker.setIcon(L.divIcon({
+                html: marker.options.emoji,
+                className: 'emoji-marker',
+                iconSize: [size, size]
+            }));
+        });
+    }
+
+    function saveMapData() {
+        const mapData = {
+            markers: markers.map(marker => ({
+                lat: marker.getLatLng().lat,
+                lng: marker.getLatLng().lng,
+                title: marker.options.title,
+                description: marker.options.description,
+                emoji: marker.options.emoji,
+                image: marker.options.image || '',  // Ensure the image URL is saved
+                comments: marker.options.comments || [],
+                timestamp: marker.options.timestamp || new Date().toISOString() // Save timestamp or generate a new one
+            }))
+        };
+    
+        fetch('/save_map', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ map_data: JSON.stringify(mapData) })
+        }).then(response => response.json()).then(data => {
+            if (data.status === 'success') {
+                console.log('Map data saved successfully');
+            } else {
+                console.log('Error saving map data:', data.message);
+            }
+        });
+    }
+
+    map.on('zoomend moveend', updateMarkerSizes);
+
+</script>
+
+{% endblock %}
